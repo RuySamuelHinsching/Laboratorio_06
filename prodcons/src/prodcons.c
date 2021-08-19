@@ -64,7 +64,6 @@ void GPIOJ_Handler(void)
     
   GPIOIntEnable(GPIO_PORTJ_BASE, GPIO_INT_PIN_0);
   GPIOIntEnable(GPIO_PORTJ_BASE, GPIO_INT_PIN_1);
-  osThreadYield();
 }
 
 
@@ -133,23 +132,7 @@ void controladora(void *arg)
           osMessageQueuePut (filaAcionadora_id[led_id], &led4.tempo, 0, osWaitForever);
       }  
     }
-    else if (mensagem == nada)
-    {
-       switch (led_id)
-      {
-        case 0:
-          osMessageQueuePut (filaAcionadora_id[led1.id], &led1.tempo, 0, osWaitForever);
-        case 1:
-          osMessageQueuePut (filaAcionadora_id[led2.id], &led2.tempo, 0, osWaitForever);
-        case 2:
-          osMessageQueuePut (filaAcionadora_id[led3.id], &led3.tempo, 0, osWaitForever);
-        case 3:
-          osMessageQueuePut (filaAcionadora_id[led4.id], &led4.tempo, 0, osWaitForever);
-      }
-     
-    }
     mensagem = nada;
-    osThreadYield();
   }
 }
 
@@ -160,10 +143,11 @@ void acionadora(void *arg)
   ledAux.id = led->id;
   ledAux.led = led->led;
   ledAux.tempo = led->tempo;
-  int tick;
+  int tick, i, flag = 0;
 
   while (1)
   {
+    flag = 0;
     osMessageQueueGet (filaAcionadora_id[ledAux.id], &ledAux.tempo , NULL, osWaitForever); //a mensagem pega eh armazenada em &mensagem
     
     ledAux.id = led->id;
@@ -185,22 +169,33 @@ void acionadora(void *arg)
     tick = osKernelGetTickCount();  
     osDelayUntil((100-ledAux.tempo) + tick);
     
-    if(osMessageQueueGetCount(filaAcionadora_id[ledAux.id]) == 0)
+    for(i=0; i<4; i++)
     {
-       switch (ledAux.id)
-       {
-        case 0:
-          osMessageQueuePut (filaAcionadora_id[led1.id], &led1.tempo, 0, osWaitForever);
-        case 1:
-          osMessageQueuePut (filaAcionadora_id[led2.id], &led2.tempo, 0, osWaitForever);
-        case 2:
-          osMessageQueuePut (filaAcionadora_id[led3.id], &led3.tempo, 0, osWaitForever);
-        case 3:
-          osMessageQueuePut (filaAcionadora_id[led4.id], &led4.tempo, 0, osWaitForever);
-       }
+      if(osMessageQueueGetCount(filaAcionadora_id[i]) > 0)
+      {
+        flag++;
+      }
     }
     
-    osThreadYield();
+    if(!flag)
+    {
+      if (ledAux.id == 0)
+      {
+        osMessageQueuePut (filaAcionadora_id[led1.id], &led1.tempo, 0, osWaitForever);
+      }
+      else if (ledAux.id == 1)
+      {
+        osMessageQueuePut (filaAcionadora_id[led2.id], &led2.tempo, 0, osWaitForever);
+      }
+      else if (ledAux.id == 2)
+      {
+        osMessageQueuePut (filaAcionadora_id[led3.id], &led3.tempo, 0, osWaitForever);
+      }
+      else if (ledAux.id == 3)
+      {
+        osMessageQueuePut (filaAcionadora_id[led4.id], &led4.tempo, 0, osWaitForever);
+      }
+    }  
   }
 }
 
